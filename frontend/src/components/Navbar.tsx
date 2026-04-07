@@ -35,6 +35,9 @@ export default function Navbar() {
           <Link href="/login" className={linkClass("/login")}>
             Login
           </Link>
+          <Link href="/flights" className={linkClass("/flights")}>
+            Flights
+          </Link>
           <Link
             href="/signup"
             className="rounded-full bg-slate-900 px-4 py-2 font-medium text-white transition hover:bg-slate-800"
