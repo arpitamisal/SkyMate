@@ -64,7 +64,7 @@ export default function Home() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-20">
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3 mb-6">
           {features.map((feature) => (
             <div
               key={feature.title}
