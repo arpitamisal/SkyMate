@@ -20,3 +20,8 @@ MCP server:
   cd mcp-server
   python server.py
 ```
+
+DOCKER: 
+```
+docker compose up --build
+```
