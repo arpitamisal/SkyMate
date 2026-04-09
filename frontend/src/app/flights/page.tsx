@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 type FlightData = {
   flight_number: string;
@@ -30,10 +31,14 @@ function getStatusStyles(status: string) {
 }
 
 export default function FlightsPage() {
+  const { user, isAuthenticated } = useAuth();
+
   const [flightNumber, setFlightNumber] = useState("");
   const [flight, setFlight] = useState<FlightData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [trackMessage, setTrackMessage] = useState("");
+  const [tracking, setTracking] = useState(false);
 
   const handleSearch = async (customFlight?: string) => {
     const searchValue = customFlight ?? flightNumber;
@@ -45,6 +50,7 @@ export default function FlightsPage() {
 
     setLoading(true);
     setError("");
+    setTrackMessage("");
     setFlight(null);
 
     try {
@@ -66,6 +72,59 @@ export default function FlightsPage() {
       setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const flightFromUrl = params.get("flight");
+
+    if (flightFromUrl) {
+      setFlightNumber(flightFromUrl.toUpperCase());
+      handleSearch(flightFromUrl.toUpperCase());
+    }
+  }, []);
+
+  const handleTrackFlight = async () => {
+    if (!flight) return;
+
+    if (!isAuthenticated || !user) {
+      setTrackMessage("Please log in to track flights.");
+      return;
+    }
+
+    setTracking(true);
+    setTrackMessage("");
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/tracked-flights/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          flight_number: flight.flight_number,
+          airline: flight.airline,
+          departure_airport: flight.departure_airport,
+          arrival_airport: flight.arrival_airport,
+          status: flight.status,
+          terminal: flight.terminal,
+          gate: flight.gate,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to track flight");
+      }
+
+      setTrackMessage("Flight added to your tracked flights.");
+    } catch (err: any) {
+      setTrackMessage(err.message || "Something went wrong.");
+    } finally {
+      setTracking(false);
     }
   };
 
@@ -160,7 +219,20 @@ export default function FlightsPage() {
                   </span>
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className="mb-6 flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={handleTrackFlight}
+                    className="rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white transition hover:bg-slate-800"
+                  >
+                    {tracking ? "Tracking..." : "Track Flight"}
+                  </button>
+
+                  {trackMessage && (
+                    <p className="text-sm text-slate-600">{trackMessage}</p>
+                  )}
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-3 mb-6">
                   <div className="rounded-3xl bg-slate-50 p-6 shadow-inner">
                     <p className="text-sm text-slate-500">Departure</p>
                     <h3 className="mt-2 text-3xl font-bold text-slate-900">

@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
+
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -36,7 +39,7 @@ export default function LoginPage() {
         throw new Error(data.detail || "Login failed");
       }
 
-      localStorage.setItem("token", data.access_token);
+      await login(data.access_token);
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message || "Something went wrong");
