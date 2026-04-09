@@ -14,3 +14,9 @@ Frontend:
   cd frontend
   run dev
 ```
+
+MCP server: 
+```
+  cd mcp-server
+  python server.py
+```
