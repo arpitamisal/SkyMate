@@ -24,6 +24,10 @@ function getStatusBadge(status: string) {
       return "bg-blue-100 text-blue-700";
     case "on time":
       return "bg-emerald-100 text-emerald-700";
+    case "active":
+      return "bg-blue-100 text-blue-700";
+    case "scheduled":
+      return "bg-sky-100 text-sky-700";
     default:
       return "bg-slate-100 text-slate-700";
   }
@@ -104,6 +108,13 @@ export default function DashboardPage() {
     ).length;
   }, [trackedFlights]);
 
+  const activeTripsCount = useMemo(() => {
+    return trackedFlights.filter((flight) => {
+      const status = flight.status.toLowerCase();
+      return ["active", "boarding", "scheduled"].includes(status);
+    }).length;
+  }, [trackedFlights]);
+
   const cards = [
     {
       title: "Tracked Flights",
@@ -112,7 +123,7 @@ export default function DashboardPage() {
     },
     {
       title: "Active Trips",
-      value: "0",
+      value: String(activeTripsCount),
       icon: "🧳",
     },
     {
@@ -152,11 +163,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3 mb-6">
+        <div className="mb-6 grid gap-6 md:grid-cols-3">
           {cards.map((card) => (
             <div
               key={card.title}
-              className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 shadow-sm transition hover:shadow-lg hover:-translate-y-0.5"
+              className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
             >
               <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-2xl">
                 {card.icon}
@@ -206,7 +217,7 @@ export default function DashboardPage() {
               {trackedFlights.map((flight) => (
                 <div
                   key={flight.id}
-                  className={`rounded-2xl p-5 transition hover:-translate-y-0.5 hover:shadow-lg hover:-translate-y-0.5 ${
+                  className={`rounded-2xl p-5 transition hover:-translate-y-0.5 hover:shadow-lg ${
                     flight.status.toLowerCase() === "delayed"
                       ? "border border-amber-200 bg-white"
                       : "bg-slate-50"
