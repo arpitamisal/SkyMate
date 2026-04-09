@@ -3,10 +3,14 @@ An end-to-end AI-powered flight tracking platform using Next.js, FastAPI, MySQL,
 
 
 Backend:
+```
   cd backend
   source venv/bin/activate
   uvicorn app.main:app --reload
+```
 
 Frontend:
+```
   cd frontend
   run dev
+```
