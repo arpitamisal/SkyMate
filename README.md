@@ -17,17 +17,16 @@ SkyMate is a full-stack AI-powered travel assistant that provides real-time flig
 
 ---
 
-<img width="1470" height="810" alt="Screenshot 2026-04-09 at 6 50 36 PM" src="https://github.com/user-attachments/assets/0f2a307b-edcd-47ef-b5c6-479ebe100358" />
-<img width="1453" height="809" alt="Screenshot 2026-04-09 at 6 50 25 PM" src="https://github.com/user-attachments/assets/5d9f9f93-b212-4dd3-ada1-f74af70c4c0a" />
-<img width="1457" height="810" alt="Screenshot 2026-04-09 at 6 49 38 PM" src="https://github.com/user-attachments/assets/a9a671d0-7826-4517-ac74-731d7061712d" />
-<img width="1453" height="810" alt="Screenshot 2026-04-09 at 6 49 20 PM" src="https://github.com/user-attachments/assets/20cb2dbd-abb5-4448-ae9a-a4713311dd07" />
-<img width="1452" height="813" alt="Screenshot 2026-04-09 at 6 49 01 PM" src="https://github.com/user-attachments/assets/0fb9eabf-b9dc-4eb4-91d1-b5ae153e9a32" />
-<img width="1455" height="810" alt="Screenshot 2026-04-09 at 6 48 43 PM" src="https://github.com/user-attachments/assets/ac27ab67-41b3-4d8f-b0d8-9af512765c0f" />
-<img width="1454" height="811" alt="Screenshot 2026-04-09 at 6 48 31 PM" src="https://github.com/user-attachments/assets/b30c2931-b479-4805-8b24-b032acf4cb57" />
-<img width="1470" height="814" alt="Screenshot 2026-04-09 at 6 47 40 PM" src="https://github.com/user-attachments/assets/f487df55-3622-4897-b599-413aaa02e551" />
-<img width="1470" height="810" alt="Screenshot 2026-04-09 at 6 46 51 PM" src="https://github.com/user-attachments/assets/8616380a-77b2-4a45-8281-97ed0ae63e83" />
 <img width="1454" height="811" alt="Screenshot 2026-04-09 at 6 46 33 PM" src="https://github.com/user-attachments/assets/43008f12-91eb-4882-96dd-c325595501ff" />
-
+<img width="1470" height="810" alt="Screenshot 2026-04-09 at 6 46 51 PM" src="https://github.com/user-attachments/assets/8616380a-77b2-4a45-8281-97ed0ae63e83" />
+<img width="1470" height="814" alt="Screenshot 2026-04-09 at 6 47 40 PM" src="https://github.com/user-attachments/assets/f487df55-3622-4897-b599-413aaa02e551" />
+<img width="1454" height="811" alt="Screenshot 2026-04-09 at 6 48 31 PM" src="https://github.com/user-attachments/assets/b30c2931-b479-4805-8b24-b032acf4cb57" />
+<img width="1455" height="810" alt="Screenshot 2026-04-09 at 6 48 43 PM" src="https://github.com/user-attachments/assets/ac27ab67-41b3-4d8f-b0d8-9af512765c0f" />
+<img width="1452" height="813" alt="Screenshot 2026-04-09 at 6 49 01 PM" src="https://github.com/user-attachments/assets/0fb9eabf-b9dc-4eb4-91d1-b5ae153e9a32" />
+<img width="1453" height="810" alt="Screenshot 2026-04-09 at 6 49 20 PM" src="https://github.com/user-attachments/assets/20cb2dbd-abb5-4448-ae9a-a4713311dd07" />
+<img width="1457" height="810" alt="Screenshot 2026-04-09 at 6 49 38 PM" src="https://github.com/user-attachments/assets/a9a671d0-7826-4517-ac74-731d7061712d" />
+<img width="1453" height="809" alt="Screenshot 2026-04-09 at 6 50 25 PM" src="https://github.com/user-attachments/assets/5d9f9f93-b212-4dd3-ada1-f74af70c4c0a" />
+<img width="1470" height="810" alt="Screenshot 2026-04-09 at 6 50 36 PM" src="https://github.com/user-attachments/assets/0f2a307b-edcd-47ef-b5c6-479ebe100358" />
 
 ---
 
