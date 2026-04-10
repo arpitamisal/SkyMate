@@ -4,10 +4,15 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8000";
+
 type Message = {
   role: "user" | "assistant";
   content: string;
   toolUsed?: string | null;
+  dataSource?: string | null;
+  suggestedActions?: string[];
 };
 
 export default function AssistantPage() {
@@ -18,6 +23,12 @@ export default function AssistantPage() {
       role: "assistant",
       content:
         "Hi! I'm SkyMate AI ✈️ Ask me about your flights, delays, airport departures, arrivals, or travel plans.",
+      dataSource: "🔧 Data source: AI assistant",
+      suggestedActions: [
+        "Show departures from SFO",
+        "Show arrivals at JFK",
+        "What flights am I tracking?",
+      ],
     },
   ]);
 
@@ -47,7 +58,7 @@ export default function AssistantPage() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/ai/chat", {
+      const res = await axios.post(`${API_BASE_URL}/ai/chat`, {
         message: finalMessage,
         user_id: user?.id || null,
         current_flight: selectedFlight,
@@ -63,18 +74,24 @@ export default function AssistantPage() {
         role: "assistant",
         content: data.reply,
         toolUsed: data.tool_used || null,
+        dataSource: data.data_source || null,
+        suggestedActions: data.suggested_actions || [],
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err: any) {
-      console.error(err);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content:
-            err?.response?.data?.detail ||
-            "Something went wrong. Try again.",
+            "⚠️ I couldn't fetch live flight data right now. Try again in a moment.",
+          dataSource: "🔧 Data source: AI assistant",
+          suggestedActions: [
+            "Show departures from SFO",
+            "Show arrivals at JFK",
+            "What flights am I tracking?",
+          ],
         },
       ]);
     } finally {
@@ -117,7 +134,7 @@ export default function AssistantPage() {
         {messages.map((msg, idx) => (
           <div key={idx}>
             <div
-              className={`max-w-[80%] rounded-xl px-4 py-3 text-sm ${
+              className={`max-w-[80%] rounded-xl px-4 py-3 text-sm whitespace-pre-line ${
                 msg.role === "user"
                   ? "ml-auto bg-slate-900 text-white"
                   : "bg-slate-100 text-slate-800"
@@ -126,11 +143,25 @@ export default function AssistantPage() {
               {msg.content}
             </div>
 
-            {msg.role === "assistant" && msg.toolUsed && (
-              <p className="mt-1 text-xs text-slate-500">
-                Tool used: <span className="font-medium">{msg.toolUsed}</span>
-              </p>
+            {msg.role === "assistant" && msg.dataSource && (
+              <p className="mt-2 text-xs text-slate-500">{msg.dataSource}</p>
             )}
+
+            {msg.role === "assistant" &&
+              msg.suggestedActions &&
+              msg.suggestedActions.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {msg.suggestedActions.map((action) => (
+                    <button
+                      key={action}
+                      onClick={() => sendMessage(action)}
+                      className="rounded-full border px-3 py-1 text-xs text-slate-600 hover:bg-slate-100"
+                    >
+                      {action}
+                    </button>
+                  ))}
+                </div>
+              )}
           </div>
         ))}
 
@@ -159,9 +190,9 @@ export default function AssistantPage() {
         <div className="flex flex-wrap gap-2">
           {[
             "What flights am I tracking?",
-            "Which flights are delayed?",
-            "Show me departures from SFO",
-            "Show me arrivals at JFK",
+            "Which of my tracked flights are delayed?",
+            "Show departures from SFO",
+            "Show arrivals at JFK",
             "Tell me about this flight",
             "Give me a travel plan after landing",
           ].map((q) => (
