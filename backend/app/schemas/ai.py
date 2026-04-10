@@ -17,3 +17,5 @@ class AIChatRequest(BaseModel):
 class AIChatResponse(BaseModel):
     reply: str
     tool_used: Optional[str] = None
+    data_source: Optional[str] = None
+    suggested_actions: Optional[List[str]] = None

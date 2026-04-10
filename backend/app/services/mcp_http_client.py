@@ -1,12 +1,16 @@
 import json
 import os
+import time
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import httpx
 
 
 class MCPHttpClient:
+    _cache: Dict[str, Tuple[float, Any]] = {}
+    _cache_ttl_seconds = 90
+
     def __init__(self):
         self.server_url = os.getenv("MCP_SERVER_URL")
         if not self.server_url:
@@ -30,10 +34,6 @@ class MCPHttpClient:
         return headers
 
     def _extract_json_from_sse(self, text: str) -> Dict[str, Any]:
-        """
-        Very small parser for MCP event-stream responses.
-        Looks for lines starting with 'data:' and parses the JSON payload.
-        """
         for line in text.splitlines():
             if line.startswith("data:"):
                 payload = line[len("data:"):].strip()
@@ -41,6 +41,24 @@ class MCPHttpClient:
                     return json.loads(payload)
 
         raise RuntimeError("Could not parse SSE response from MCP server.")
+
+    def _make_cache_key(self, tool_name: str, arguments: Dict[str, Any]) -> str:
+        return f"{tool_name}:{json.dumps(arguments, sort_keys=True)}"
+
+    def _get_cached(self, cache_key: str) -> Optional[Any]:
+        item = self._cache.get(cache_key)
+        if not item:
+            return None
+
+        timestamp, value = item
+        if time.time() - timestamp > self._cache_ttl_seconds:
+            self._cache.pop(cache_key, None)
+            return None
+
+        return value
+
+    def _set_cached(self, cache_key: str, value: Any) -> None:
+        self._cache[cache_key] = (time.time(), value)
 
     async def _post_jsonrpc(
         self,
@@ -54,7 +72,6 @@ class MCPHttpClient:
                 json=payload,
             )
 
-        # Capture session ID if server provides one
         session_id = response.headers.get("Mcp-Session-Id")
         if session_id:
             self.session_id = session_id
@@ -115,23 +132,12 @@ class MCPHttpClient:
 
         await self._post_jsonrpc(initialized_notification, expect_response=False)
 
-    async def list_tools(self) -> Any:
-        await self.initialize()
-
-        payload = {
-            "jsonrpc": "2.0",
-            "id": str(uuid.uuid4()),
-            "method": "tools/list",
-            "params": {},
-        }
-
-        response = await self._post_jsonrpc(payload, expect_response=True)
-        if "error" in response:
-            raise RuntimeError(f"MCP tools/list error: {response['error']}")
-
-        return response.get("result", {})
-
     async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
+        cache_key = self._make_cache_key(tool_name, arguments)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
         await self.initialize()
 
         payload = {
@@ -153,13 +159,11 @@ class MCPHttpClient:
             raise RuntimeError(f"MCP tools/call error: {response['error']}")
 
         result = response.get("result", {})
-
-        # Prefer structured content if available
         structured = result.get("structuredContent")
         if structured is not None:
+            self._set_cached(cache_key, structured)
             return structured
 
-        # Some servers may return plain content blocks
         content = result.get("content")
         if isinstance(content, list) and len(content) > 0:
             text_blocks = []
@@ -167,6 +171,9 @@ class MCPHttpClient:
                 if isinstance(item, dict) and item.get("type") == "text":
                     text_blocks.append(item.get("text", ""))
             if text_blocks:
-                return "\n".join(text_blocks)
+                joined = "\n".join(text_blocks)
+                self._set_cached(cache_key, joined)
+                return joined
 
+        self._set_cached(cache_key, result)
         return result

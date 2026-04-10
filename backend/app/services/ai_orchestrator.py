@@ -21,9 +21,9 @@ def extract_airport_code(message: str) -> Optional[str]:
     if not matches:
         return None
 
-    common_words_to_ignore = {"THE", "AND", "FOR", "ALL", "ANY", "TOD", "DAY"}
+    ignore_words = {"THE", "AND", "FOR", "ALL", "ANY", "TOD", "DAY"}
     for match in matches:
-        if match not in common_words_to_ignore:
+        if match not in ignore_words:
             return match
     return None
 
@@ -67,21 +67,20 @@ def decide_tools(
     user_id: Optional[int],
     current_flight: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
-    message_lower = message.lower()
+    query = message.lower()
     tools_to_run: List[Dict[str, Any]] = []
 
     flight_number = extract_flight_number(message)
     airport_code = extract_airport_code(message)
 
+    # 1. tracked flights queries
     if any(
-        phrase in message_lower
+        phrase in query
         for phrase in [
             "tracked flights",
             "my flights",
-            "which flights",
-            "what flights",
-            "delayed flights",
-            "delay alerts",
+            "what flights am i tracking",
+            "which flights am i tracking",
         ]
     ):
         if user_id:
@@ -91,9 +90,30 @@ def decide_tools(
                     "args": {"user_id": user_id},
                 }
             )
+        return tools_to_run
 
+    # 2. combined flow: delayed tracked flights
+    if any(
+        phrase in query
+        for phrase in [
+            "which of my tracked flights are delayed",
+            "which flights are delayed",
+            "delayed tracked flights",
+            "delay alerts for my flights",
+        ]
+    ):
+        if user_id:
+            tools_to_run.append(
+                {
+                    "tool_name": "get_tracked_flights_local",
+                    "args": {"user_id": user_id},
+                }
+            )
+        return tools_to_run
+
+    # 3. departures / arrivals should win first
     if airport_code and any(
-        phrase in message_lower
+        phrase in query
         for phrase in ["departures", "departing", "leaving", "leaving from"]
     ):
         tools_to_run.append(
@@ -102,9 +122,10 @@ def decide_tools(
                 "args": {"airport_iata": airport_code, "limit": 8},
             }
         )
+        return tools_to_run
 
     if airport_code and any(
-        phrase in message_lower
+        phrase in query
         for phrase in ["arrivals", "arriving", "landing", "coming into"]
     ):
         tools_to_run.append(
@@ -113,20 +134,25 @@ def decide_tools(
                 "args": {"airport_iata": airport_code, "limit": 8},
             }
         )
+        return tools_to_run
 
+    # 4. explicit flight status
     if flight_number and any(
-        phrase in message_lower
+        phrase in query
         for phrase in [
-            "flight",
             "status",
+            "this flight",
+            "current flight",
+            "that flight",
             "gate",
             "terminal",
-            "arrival",
             "departure",
+            "arrival",
             "boarding",
             "delay",
             "delayed",
             "on time",
+            "flight",
         ]
     ):
         tools_to_run.append(
@@ -135,14 +161,19 @@ def decide_tools(
                 "args": {"flight_iata": flight_number},
             }
         )
+        return tools_to_run
 
-    if not flight_number and current_flight and any(
-        phrase in message_lower
+    # 5. selected/current flight fallback
+    if current_flight and any(
+        phrase in query
         for phrase in [
             "this flight",
             "selected flight",
             "current flight",
             "that flight",
+            "its status",
+            "its gate",
+            "its terminal",
         ]
     ):
         current_flight_iata = current_flight.get("flight_number")
@@ -153,9 +184,11 @@ def decide_tools(
                     "args": {"flight_iata": current_flight_iata},
                 }
             )
+            return tools_to_run
 
+    # 6. travel plan
     if any(
-        phrase in message_lower
+        phrase in query
         for phrase in [
             "travel plan",
             "when i land",
@@ -175,8 +208,91 @@ def decide_tools(
                     "args": {"flight_iata": target_flight},
                 }
             )
+        return tools_to_run
 
     return tools_to_run
+
+
+def format_departures_response(data: Dict[str, Any]) -> str:
+    airport = data.get("airport", "this airport")
+    flights = data.get("flights", []) or []
+
+    if not flights:
+        return f"I couldn't find any live departures for {airport} right now."
+
+    lines = [f"Here are upcoming departures from {airport}:"]
+    for flight in flights[:5]:
+        lines.append(
+            f"✈️ {flight.get('flight_iata') or flight.get('flight_number') or 'Unknown'} → "
+            f"{flight.get('arrival_iata') or flight.get('arrival_airport') or 'Unknown'}"
+        )
+        lines.append(
+            f"   Airline: {flight.get('airline_name') or 'Unknown airline'}"
+        )
+        lines.append(
+            f"   Terminal {flight.get('departure_terminal') or 'N/A'}, "
+            f"Gate {flight.get('departure_gate') or 'N/A'}"
+        )
+        lines.append(
+            f"   Departure: {flight.get('departure_estimated') or flight.get('departure_scheduled') or 'N/A'}"
+        )
+        lines.append("")
+    return "\n".join(lines).strip()
+
+
+def format_arrivals_response(data: Dict[str, Any]) -> str:
+    airport = data.get("airport", "this airport")
+    flights = data.get("flights", []) or []
+
+    if not flights:
+        return f"I couldn't find any live arrivals for {airport} right now."
+
+    lines = [f"Here are upcoming arrivals at {airport}:"]
+    for flight in flights[:5]:
+        lines.append(
+            f"✈️ {flight.get('flight_iata') or flight.get('flight_number') or 'Unknown'} ← "
+            f"{flight.get('departure_iata') or flight.get('departure_airport') or 'Unknown'}"
+        )
+        lines.append(
+            f"   Airline: {flight.get('airline_name') or 'Unknown airline'}"
+        )
+        lines.append(
+            f"   Terminal {flight.get('arrival_terminal') or 'N/A'}, "
+            f"Gate {flight.get('arrival_gate') or 'N/A'}"
+        )
+        lines.append(
+            f"   Arrival: {flight.get('arrival_estimated') or flight.get('arrival_scheduled') or 'N/A'}"
+        )
+        lines.append("")
+    return "\n".join(lines).strip()
+
+
+def format_flight_status_response(data: Dict[str, Any]) -> str:
+    if not data.get("found"):
+        return data.get("message", "I couldn't find live flight status right now.")
+
+    flight = data.get("flight", {})
+    return "\n".join(
+        [
+            f"Here’s the latest status for {flight.get('flight_iata') or flight.get('flight_number')}:",
+            f"✈️ Airline: {flight.get('airline_name') or 'Unknown airline'}",
+            f"🛫 Route: {flight.get('departure_iata') or flight.get('departure_airport')} → {flight.get('arrival_iata') or flight.get('arrival_airport')}",
+            f"📍 Status: {flight.get('flight_status') or 'Unknown'}",
+            f"🏢 Departure: Terminal {flight.get('departure_terminal') or 'N/A'}, Gate {flight.get('departure_gate') or 'N/A'}",
+            f"🏢 Arrival: Terminal {flight.get('arrival_terminal') or 'N/A'}, Gate {flight.get('arrival_gate') or 'N/A'}",
+        ]
+    )
+
+
+def format_arrival_plan_response(data: Dict[str, Any]) -> str:
+    if not data.get("found"):
+        return data.get("message", "I couldn't build a live arrival plan right now.")
+
+    plan = data.get("plan", []) or []
+    lines = ["Here’s your arrival plan:"]
+    for step in plan:
+        lines.append(f"• {step}")
+    return "\n".join(lines)
 
 
 async def run_tools(
@@ -193,6 +309,39 @@ async def run_tools(
         if tool_name == "get_tracked_flights_local":
             result = get_tracked_flights_local(user_id=args["user_id"], db=db)
             tool_results["get_tracked_flights_local"] = result
+
+            # combined flow: enrich tracked flights with live status
+            if result:
+                enriched = []
+                delayed = []
+                for flight in result:
+                    flight_number = flight.get("flight_number")
+                    if not flight_number:
+                        continue
+
+                    try:
+                        live_result = await mcp_client.call_tool(
+                            "search_flight_status",
+                            {"flight_iata": flight_number},
+                        )
+                        enriched_item = {
+                            "tracked": flight,
+                            "live": live_result,
+                        }
+                        enriched.append(enriched_item)
+
+                        live_status = (
+                            live_result.get("flight", {}).get("flight_status", "")
+                            if isinstance(live_result, dict)
+                            else ""
+                        )
+                        if str(live_status).lower() == "delayed":
+                            delayed.append(enriched_item)
+                    except Exception:
+                        continue
+
+                tool_results["tracked_flights_live_status"] = enriched
+                tool_results["delayed_tracked_flights"] = delayed
 
         elif tool_name == "search_flight_status":
             result = await mcp_client.call_tool("search_flight_status", args)
